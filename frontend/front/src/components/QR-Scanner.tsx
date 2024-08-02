@@ -2,74 +2,77 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode.react';
 import { v4 as uuidv4 } from 'uuid';
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
+// Определение типа для props компонента QRCodeGenerator
+interface QRCodeGeneratorProps {
+    authToken: string;
+}
 
-const QRCodeGenerator = ({ authToken }: {authToken}) => {
+const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ authToken }) => {
     return <QRCode size={300} value={authToken} />;
 };
 
-const generateToken = async (token) => {
+const generateToken = async (token: string): Promise<void> => {
     try {
-        await axios.post('http://localhost:3500/api/token/generate-token', {
-            token
-        });
+        await axios.post('http://localhost:3500/api/token/generate-token', { token });
     } catch (e) {
+        const error = e as AxiosError;
+        console.error(error);
     }
 };
 
-export const QRCodeComponent = () => {
+export const QRCodeComponent: React.FC = () => {
     const [authToken] = useState<string>(uuidv4());
-    const [showSucces, setShowSucces] = useState(false)
+    const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
-    const sendValidate = async () => {
+    const sendValidate = async (): Promise<void> => {
         try {
-            await axios.post('http://localhost:3500/api/token/authenticate', {
-                token: authToken
-            })
-        } catch (e) {}
-    }
+            await axios.post('http://localhost:3500/api/token/authenticate', { token: authToken });
+        } catch (e) {
+            const error = e as AxiosError;
+            console.error(error);
+        }
+    };
 
-    const checkToken = async () => {
+    const checkToken = async (): Promise<void> => {
         try {
+            const { data } = await axios.post('http://localhost:3500/api/token/check', { token: authToken });
 
-          const {data} = await axios.post('http://localhost:3500/api/token/check', {
-                token: authToken
-            })
-
-            if(data.success) {
-                setShowSucces(true)
+            if (data.success) {
+                setShowSuccess(true);
             }
-
-        } catch (e) {}
-    }
+        } catch (e) {
+            const error = e as AxiosError;
+            console.error(error);
+        }
+    };
 
     useEffect(() => {
         generateToken(authToken);
-    }, []);
+    }, [authToken]); // Добавляем authToken как зависимость
 
     useEffect(() => {
-        let id;
-        if (!showSucces) {
+        let id: ReturnType<typeof setInterval>;
+        if (!showSuccess) {
             id = setInterval(checkToken, 500);
         }
-        return () => clearInterval(id);
-    }, [showSucces]);
+        return () => {
+            if (id) clearInterval(id);
+        };
+    }, [showSuccess]);
 
     return (
         <div className="flex flex-col items-center justify-center gap-[10px] text-white">
-            {
-                showSucces
-                    ?
-                    <div>Вы успешно зашли в систему</div>
-                    :
-                    <>
-                        <h1>Авторизация через QR-код</h1>
-                        <QRCodeGenerator authToken={authToken}/>
-                        <button onClick={sendValidate}>send</button>
-                    </>
-            }
-
+            {showSuccess ? (
+                <div>Вы успешно зашли в систему</div>
+            ) : (
+                <>
+                    <h1>Авторизация через QR-код</h1>
+                    <QRCodeGenerator authToken={authToken} />
+                    <button onClick={sendValidate}>send</button>
+                </>
+            )}
         </div>
     );
 };
