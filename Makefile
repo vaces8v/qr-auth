@@ -14,7 +14,7 @@ dbcreate:
 		postgres:15-alpine
 
 apibuild:
-		docker build -t api ./backend/Dockerfile
+		docker build -t api ./backend/
 
 apirun:
 		docker run -d \
@@ -25,7 +25,7 @@ apirun:
 		api
 
 sitebuild:
-		docker build -t site ./frontend/front/Dockerfile
+		docker build -t site ./frontend/front/
 
 siterun:
 		docker run -d \
